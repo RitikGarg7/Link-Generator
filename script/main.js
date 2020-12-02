@@ -1,68 +1,33 @@
-var inpBox=document.querySelector('#inp-box')
-var overlay=document.querySelector('.overlay');
-var underlay=document.querySelector('.underlay'); 
 const uploadBtn=document.querySelector('#upload-btn');
 const uploadBtn2=document.querySelector('#upload-btn2');
+const uploadBtn3=document.querySelector('#upload-btn3');
+const inpBox=document.querySelector('#inp-box')
+const overlay=document.querySelector('.overlay');
+const underlay=document.querySelector('.underlay'); 
+const croppped=document.querySelector('.cropped');
+const cropppedU=document.querySelector('.cropped-upper');
 const dropZone=document.querySelector('#drop-zone');
 const linker=document.querySelector('.get-link');
 const modalCloseTrigger = document.querySelector('.popup-modal__close');
 const bodyBlackout = document.querySelector('.body-blackout');
 const popupModal=document.querySelector('.popup-modal');
 const conta=document.querySelector('.conta');
-const croppped=document.querySelector('.cropped');
-const cropppedU=document.querySelector('.cropped-upper');
+const rel=document.querySelector('.rel'); 
+var resize,count,file;
+var isCropped=false;
 
-const heler=document.querySelector('.heler');
 uploadBtn.addEventListener("click",function() {
-    console.log("Hello")
+    console.log("button 1 pressed");
     inpBox.click();
-})   
-inpBox.addEventListener('change',fileEvent);
- 
-modalCloseTrigger.addEventListener("click",function() { 
-    popupModal.classList.remove('is--visible')
-    bodyBlackout.classList.remove('is-blacked-out');
 })
 
+inpBox.addEventListener('change',urlExtractor);
 
- 
-function fileEvent(e) { 
-    conta.classList.add('shower');
-    let file;
-    if(e.type==="change") {
-        file = e.currentTarget.files[0]; 
-    }else {
-        file=e.dataTransfer.files[0];
-    }
-    
-    const formData=new FormData();
-    formData.append("image",file); 
-    fetch('https://api.imgur.com/3/image/',{
-        method:"POST",
-        headers:{
-            Authorization:"CLIENT-ID b865730ae641337"
-        },
-        body:formData
-    }).then(data=>data.json())
-    .then(data=> {
-        conta.classList.remove('shower');
-        popupModal.classList.add('is--visible');
-        bodyBlackout.classList.add('is-blacked-out');
-        linker.href=data.data.link;
-        // console.log("Your Image is successfull uploaded to "+data.data.link);
-    })
-    paster(file); 
-   
-}
-  
-function paster(file) {
-    var reader=new FileReader();
-    reader.onload=function() { 
-        underlay.style.display="none";
-        croppped.src=reader.result;
-        croppped.classList.add('cropped-show');
-        //overlay.style.backgroundImage='url('+reader.result+')';
-        var resize = new Croppie(croppped, {
+uploadBtn2.addEventListener("click",function() {
+    console.log("button 2 pressed"); 
+    if(gate===true && count==0) {
+        count++;
+        resize = new Croppie(croppped, {
             viewport: { 
               width: 200, 
               height: 200,
@@ -71,26 +36,79 @@ function paster(file) {
             boundary: { 
               width: 350, 
               height: 300 
-            },
-            // showZoomer: false,
-            // enableResize: true,
+            }, 
             enableOrientation: true
           });
+    }else if(gate==true && count==1) {
+        count++;
+        isCropped=true;
+        resize.result('base64').then(function(dataImg) {  
+             file=dataURItoBlob(dataImg); 
 
-          uploadBtn2.addEventListener("click",function() {
-            console.log(resize);
-            resize.result('base64').then(function(dataImg) {
-                console.log(dataImg);
-            //var data = [{ image: dataImg }, { name: 'myimage.jpg' }];
-                cropppedU.src=dataImg;
-                cropppedU.classList.add('cropped-show');
-            })
-        })
+            cropppedU.src=dataImg; 
+            croppped.classList.remove('cropped-show');
+            croppped.src='#';
+            cropppedU.classList.add('cropped-show');
+            overlay.appendChild(croppped);
+            croppped.classList.remove('cr-original-image');
+            document.querySelector('.croppie-container').remove();
+     })
+        
+     }  
+
+})
+
+uploadBtn3.addEventListener("click",function() { 
+     if(file!==undefined) {
+        conta.classList.add('shower');
+        const formData=new FormData();
+        formData.append("image",file);
+        fetch('https://api.imgur.com/3/image/',{
+        method:"POST",
+        headers:{
+            Authorization:"CLIENT-ID b865730ae641337"
+        },
+        body:formData
+        }).then(data=>data.json())
+        .then(data=> {
+            conta.classList.remove('shower');
+            popupModal.classList.add('is--visible');
+            bodyBlackout.classList.add('is-blacked-out');
+            linker.href=data.data.link; 
+    })
+    }
+})
+
+modalCloseTrigger.addEventListener("click",function() { 
+    popupModal.classList.remove('is--visible')
+    bodyBlackout.classList.remove('is-blacked-out');
+})
+
+
+
+function urlExtractor(e) {  
+    if(e.type==="change") {
+        file = e.currentTarget.files[0]; 
+    }else {
+        file=e.dataTransfer.files[0];
     } 
-    reader.readAsDataURL(file); 
+    paster(file);
+}
+
+function paster(x) {
+    var reader=new FileReader(); 
+    reader.onload=function() {  
+        underlay.style.display="none";
+        croppped.src=reader.result;
+        cropppedU.classList.remove('cropped-show');
+        croppped.classList.add('cropped-show'); 
+        gate=true;
+        count=0;
+    } 
+    reader.readAsDataURL(x); 
 }
  
-
+ 
 
 var dragdrop = {
 	init : function( elem ){
@@ -103,7 +121,7 @@ var dragdrop = {
 	drop : function(e){ 
 		e.preventDefault();
 		var file = e.dataTransfer.files[0];
-		fileEvent(e);
+		urlExtractor(e);
 	},
 	drag : function(e){ 
         e.path[0].style.backgroundColor="#ecf0f5";
@@ -131,3 +149,18 @@ var dragdrop = {
 
 
 dragdrop.init(overlay); 
+
+
+function dataURItoBlob(dataURI) { 
+    var byteString = atob(dataURI.split(',')[1]); 
+    var mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0]; 
+    var ab = new ArrayBuffer(byteString.length);
+    var ia = new Uint8Array(ab);
+    for (var i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+    }
+ 
+    return new Blob([ab], {type: mimeString});
+
+
+}
